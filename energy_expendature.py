@@ -62,14 +62,25 @@ class RouteData:
         """
         self.f = pd.read_csv(fname)
         return
-    def energy_expendeture(self, your_weight, base_weight, consumable_weight, velocity, plot):
+    def energy_expendeture(self,
+                           weight,            # kg
+                           base_weight,       # kg
+                           consumable_weight, # kg
+                           velocity,          # m/s
+                           plot = False,
+                           height = None,     # cm
+                           gender = None,
+                           age = None):       # years
         """Calculate energy expendeture over entire route.
         
         Args: 
-          your_weight: How much you weight! A constant.
+          weight: How much you weight! A constant.
           base_weight: Final weight of your pack at the end of the hike, including water.
           consumable_weight: Weight of consumables that will be gone by end end of the hike.
-          speed: Speed of hiking.
+          velocity: Speed of hiking.
+          height: Height.
+          gender: For base calorie calculation.
+          age: Age in years. 
         """
         distance = np.array(self.f["Distance (meters)"])
         elevation = np.array(self.f["Elevation (meters)"])
@@ -78,12 +89,22 @@ class RouteData:
         terrain_factor = terrain_factors(terrain)
         time = distance / velocity
         pack_weight = np.linspace(base_weight + consumable_weight, base_weight, num=len(distance))
-        wattage = pandolf(your_weight, pack_weight, velocity, grade, terrain_factor)
+        wattage = pandolf(weight, pack_weight, velocity, grade, terrain_factor)
         joules = np.trapz(wattage, time)
         joules_per_calorie = 4184
         kcal = joules / joules_per_calorie
         print("calories over trip: {}".format(kcal))
         print("calories per hour: {}".format(kcal / (time[-1] / 3600)))
+
+        if height > 0 and age > 0 and gender is not None:
+            kcal_base = 10 * weight + 6.25 * height - 5 * age
+            if gender == 'male':
+                kcal_base += 5
+            elif gender == 'female':
+                kcal_base -= 161
+            else:
+                kcal_base -= 78
+            print("base calories per day: {}".format(kcal_base))
 
         if plot:
             plt.figure()
@@ -110,6 +131,9 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--velocity', type=float, help='velocity (m/s)', required=True)
     parser.add_argument('-f', '--file', type=str, help='csv file path from caltopo', required=True)
     parser.add_argument('-p', '--plot', action='store_true', help='plot some stuff')
+    parser.add_argument('-t', '--height', type=float, default=0.0, help='height (cm), if you want to add in base calories')
+    parser.add_argument('-a', '--age', type=float, default=0.0, help='age (years), if you want to add in base calories')
+    parser.add_argument('-g', '--gender', choices=['male', 'female', 'other'], default=None, help='gender, if you want to add in base calories')
     args = parser.parse_args()
 
     data = RouteData(args.file)
@@ -117,5 +141,8 @@ if __name__ == '__main__':
                             args.base_weight,
                             args.consumable_weight,
                             args.velocity,
-                            args.plot)
+                            args.plot,
+                            args.height,
+                            args.gender,
+                            args.age)
 
