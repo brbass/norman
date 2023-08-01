@@ -26,6 +26,9 @@
 #   Integrate over each segment to get joules expended
 #   Convert to calories
 
+# Base calories:
+# See https://pubmed.ncbi.nlm.nih.gov/2305711/
+
 import numpy as np
 import pandas as pd
 import argparse
