@@ -65,7 +65,7 @@ class RouteData:
         """
         self.f = pd.read_csv(fname)
         return
-    def energy_expendeture(self,
+    def energy_expenditure(self,
                            weight,            # kg
                            base_weight,       # kg
                            consumable_weight, # kg
@@ -73,8 +73,9 @@ class RouteData:
                            plot = False,
                            height = None,     # cm
                            gender = None,
-                           age = None):       # years
-        """Calculate energy expendeture over entire route.
+                           age = None,
+                           days = None):       # years
+        """Calculate energy expenditure over entire route.
         
         Args: 
           weight: How much you weight! A constant.
@@ -99,6 +100,7 @@ class RouteData:
         print("calories over trip: {}".format(kcal))
         print("calories per hour: {}".format(kcal / (time[-1] / 3600)))
 
+        kcal_base = 0.0
         if height > 0 and age > 0 and gender is not None:
             kcal_base = 10 * weight + 6.25 * height - 5 * age
             if gender == 'male':
@@ -109,6 +111,10 @@ class RouteData:
                 kcal_base -= 78
             print("base calories per day: {}".format(kcal_base))
 
+        if days is not None:
+            kcal_daily = (kcal_base * days + kcal) / days
+            print("calories per day: {}".format(kcal_daily))
+            
         if plot:
             plt.figure()
             plt.plot(time / 3600, elevation)
@@ -137,15 +143,17 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--height', type=float, default=0.0, help='height (cm), if you want to add in base calories')
     parser.add_argument('-a', '--age', type=float, default=0.0, help='age (years), if you want to add in base calories')
     parser.add_argument('-g', '--gender', choices=['male', 'female', 'other'], default=None, help='gender, if you want to add in base calories')
+    parser.add_argument('-d', '--days', type=float, default=None, help='days, if you want an average daily expenditure')
     args = parser.parse_args()
 
     data = RouteData(args.file)
-    data.energy_expendeture(args.weight,
+    data.energy_expenditure(args.weight,
                             args.base_weight,
                             args.consumable_weight,
                             args.velocity,
                             args.plot,
                             args.height,
                             args.gender,
-                            args.age)
+                            args.age,
+                            args.days)
 
