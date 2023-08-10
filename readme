@@ -2,3 +2,5 @@ Input some stuff, including a caltopo csv file. Get out an estimate of the calor
 
 Named after this dude, who climbed some mountains or something. 
 https://en.wikipedia.org/wiki/Norman_Clyde
+
+`python3 norman.py -h` will print out the options.
