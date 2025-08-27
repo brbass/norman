@@ -74,11 +74,12 @@ class RouteData:
                            height = None,     # cm
                            gender = None,
                            age = None,
-                           days = None):       # years
+                           days = None,       # years
+                           deficit = 0.0):    # kcal
         """Calculate energy expenditure over entire route.
         
         Args: 
-          weight: How much you weight! A constant.
+          weight: How much you weigh! A constant.
           base_weight: Final weight of your pack at the end of the hike, including water.
           consumable_weight: Weight of consumables that will be gone by end end of the hike.
           velocity: Speed of hiking.
@@ -94,11 +95,11 @@ class RouteData:
         time = distance / velocity
         pack_weight = np.linspace(base_weight + consumable_weight, base_weight, num=len(distance))
         wattage = pandolf(weight, pack_weight, velocity, grade, terrain_factor)
-        joules = np.trapz(wattage, time)
+        joules_active = np.trapz(wattage, time)
         joules_per_calorie = 4184
-        kcal = joules / joules_per_calorie
-        print("calories over trip: {}".format(kcal))
-        print("calories per hour: {}".format(kcal / (time[-1] / 3600)))
+        kcal_active = joules_active / joules_per_calorie
+        print("active calories over trip: {:.0f}".format(kcal_active))
+        print("active calories per hour: {:.0f}".format(kcal_active / (time[-1] / 3600)))
 
         kcal_base = 0.0
         if height > 0 and age > 0 and gender is not None:
@@ -109,27 +110,40 @@ class RouteData:
                 kcal_base -= 161
             else:
                 kcal_base -= 78
-            print("base calories per day: {}".format(kcal_base))
+            print("base calories per day: {:.0f}".format(kcal_base))
+            if deficit > 0.0:
+                print("with deficit: {:.0f}".format(kcal_base - deficit))
 
         if days is not None:
-            kcal_daily = (kcal_base * days + kcal) / days
-            print("calories per day: {}".format(kcal_daily))
+            total_cal = (kcal_base - deficit) * days + kcal_active
+            kcal_daily = total_cal / days
+            print("calories per day: {:.0f}".format(kcal_daily))
+            print("calories total: {:.0f}".format(total_cal))
             
         if plot:
+            # Smooth the kcal per hour
+            import scipy.signal
+            kcal_per_hour = scipy.signal.medfilt(wattage / joules_per_calorie * 3600, kernel_size=19)
+            distance_miles = distance / 1609.34
+            
             plt.figure()
             plt.plot(time / 3600, elevation)
             plt.xlabel("time (hours)")
             plt.ylabel("elevation (meters)")
 
-            import scipy.signal
             plt.figure()
-            kcal_per_hour = scipy.signal.medfilt(wattage / joules_per_calorie * 3600, kernel_size=19)
-            plt.plot(time / 3600, scipy.signal.medfilt(kcal_per_hour, kernel_size=19))
+            plt.plot(time / 3600, kcal_per_hour)
             plt.xlabel("time (hours)")
             plt.ylabel("kcal per hour")
             plt.ylim([0.0, np.max(kcal_per_hour)])
+
+            plt.figure()
+            plt.plot(distance_miles, elevation * 3.28)
+            plt.xlabel("distance (miles)")
+            plt.ylabel("elevation (ft)")
+            
             plt.show()
-        
+            
         return
     
 if __name__ == '__main__':
@@ -144,6 +158,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--age', type=float, default=0.0, help='age (years), if you want to add in base calories')
     parser.add_argument('-g', '--gender', choices=['male', 'female', 'other'], default=None, help='gender, if you want to add in base calories')
     parser.add_argument('-d', '--days', type=float, default=None, help='days, if you want an average daily expenditure')
+    parser.add_argument('-e', '--deficit', type=float, default=0.0, help='desired calorie deficit')
     args = parser.parse_args()
 
     data = RouteData(args.file)
@@ -155,5 +170,6 @@ if __name__ == '__main__':
                             args.height,
                             args.gender,
                             args.age,
-                            args.days)
+                            args.days,
+                            args.deficit)
 
