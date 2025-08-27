@@ -123,22 +123,31 @@ class RouteData:
         if plot:
             # Smooth the kcal per hour
             import scipy.signal
-            kcal_per_hour = scipy.signal.medfilt(wattage / joules_per_calorie * 3600, kernel_size=19)
-            distance_miles = distance / 1609.34
+            seconds_per_hour = 3600
+            meters_per_mile = 1609.34
+            ft_per_meter = 3.28
+            kcal_per_hour = scipy.signal.medfilt(wattage / joules_per_calorie * seconds_per_hour, kernel_size=19)
+            distance_miles = distance / meters_per_mile
             
             plt.figure()
-            plt.plot(time / 3600, elevation)
+            plt.plot(time / seconds_per_hour, elevation)
             plt.xlabel("time (hours)")
             plt.ylabel("elevation (meters)")
 
             plt.figure()
-            plt.plot(time / 3600, kcal_per_hour)
+            plt.plot(time / seconds_per_hour, kcal_per_hour)
             plt.xlabel("time (hours)")
             plt.ylabel("kcal per hour")
             plt.ylim([0.0, np.max(kcal_per_hour)])
 
             plt.figure()
-            plt.plot(distance_miles, elevation * 3.28)
+            plt.plot(time / seconds_per_hour, wattage)
+            plt.xlabel("time (hours)")
+            plt.ylabel("power (watts)")
+            plt.ylim([0.0, np.max(wattage)])
+            
+            plt.figure()
+            plt.plot(distance_miles, elevation * ft_per_meter)
             plt.xlabel("distance (miles)")
             plt.ylabel("elevation (ft)")
             
